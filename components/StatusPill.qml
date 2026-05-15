@@ -12,13 +12,16 @@ Rectangle {
     property string ethVal:     ""
     property string wifiVal:    ""
     property string btVal:      ""
+    property string battStatus: ""
     property string clockStr:   ""
     property bool calendarOpen: false
+    property string battVal: ""
 
     signal ethClicked
     signal wifiClicked
     signal btClicked
     signal clockClicked
+    signal powerClicked
 
     Layout.preferredHeight: 32
     Layout.preferredWidth: rightRow.implicitWidth + 26
@@ -118,6 +121,66 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
             TapHandler { onTapped: clockClicked() }
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
+        }
+        // After line 58
+Rectangle {
+    width: 1; height: 14
+    color: Qt.rgba(1,1,1,0.15)
+    anchors.verticalCenter: parent.verticalCenter
+}
+
+Item {
+            visible: battVal !== ""
+            height: 22
+            width: battLabel.implicitWidth
+            anchors.verticalCenter: parent.verticalCenter
+            Text {
+                id: battLabel
+                text: {
+                    // Clean up the string so it matches perfectly
+                    let stat = battStatus.trim().toLowerCase();
+                    let icon = "󰁹"; // Default (Discharging)
+
+                    if (stat === "charging") {
+                        icon = "󰂄"; // Charging
+                    } else if (stat === "full" || stat === "not charging") {
+                        icon = "󰚥"; // Plugged in / Full
+                    }
+
+                    return icon + "  " + battVal + "%";
+                }
+                
+                // Highlight color if it's charging
+                color: battStatus.trim().toLowerCase() === "charging" ? accentColor : fgColor
+                font.family: activeFont
+                font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+        // ── DIVIDER ──────────────────────────────────────────
+        Rectangle {
+            width: 1; height: 14
+            color: Qt.rgba(1,1,1,0.15)
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // ── POWER BUTTON ─────────────────────────────────────
+        Item {
+            height: 22
+            width: powerLabel.implicitWidth
+            anchors.verticalCenter: parent.verticalCenter
+            
+            Text {
+                id: powerLabel
+                text: "󰕮" 
+                color: errorColor // Makes it stand out nicely (red/accent)
+                font.family: activeFont
+                font.pixelSize: 14 
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            
+            TapHandler { onTapped: powerClicked() }
             HoverHandler { cursorShape: Qt.PointingHandCursor }
         }
     }

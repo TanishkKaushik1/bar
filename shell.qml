@@ -28,7 +28,10 @@ ShellRoot {
     property string wifiVal:    ""
     property string ethVal:     ""
     property string btVal:      ""
+    property string battVal: ""
+    property string battStatus: ""
     property string clockStr: Qt.formatDateTime(new Date(), "HH:mm")
+    property bool powerMenuOpen: false
 
     // ── MATUGEN ─────────────────────────────────────────────────────────────
     Process {
@@ -75,6 +78,18 @@ ShellRoot {
     Process {
         id: musicStatus; command: ["playerctl", "status"]; running: false
         stdout: SplitParser { onRead: data => { root.isPlaying = data.trim() === "Playing" } }
+    }
+    Process {
+        id: battProc
+        command: ["sh", "-c", "echo \"$(cat /sys/class/power_supply/BAT1/capacity);$(cat /sys/class/power_supply/BAT1/status)\""]
+        running: false
+        stdout: SplitParser { onRead: data => { 
+            let parts = data.trim().split(";");
+            if (parts.length === 2) {
+                root.battVal = parts[0];
+                root.battStatus = parts[1];
+            }
+        }}
     }
 
     // ── SYSTEM INFO ──────────────────────────────────────────────────────────
@@ -133,7 +148,7 @@ ShellRoot {
 
     // ── POLL TIMERS ──────────────────────────────────────────────────────────
     Timer { interval: 3000; running: true; repeat: true; triggeredOnStart: true
-        onTriggered: { cpuProc.running = true; ramProc.running = true; wifiProc.running = true; ethProc.running = true; btProc.running = true } }
+        onTriggered: { cpuProc.running = true; ramProc.running = true; wifiProc.running = true; ethProc.running = true; btProc.running = true;battProc.running = true; } }
     Timer { interval: 1000; running: true; repeat: true
         onTriggered: { musicMeta.running = true; musicStatus.running = true } }
 
@@ -197,10 +212,14 @@ ShellRoot {
                         wifiVal: root.wifiVal; btVal: root.btVal
                         clockStr: root.clockStr; calendarOpen: root.calendarOpen
                         
+                        battVal: root.battVal
+                        battStatus: root.battStatus
+
                         onEthClicked:      wifiAction.running = true 
                         onWifiClicked:     wifiAction.running = true
                         onBtClicked:       btAction.running   = true
                         onClockClicked:    root.calendarOpen  = !root.calendarOpen
+                        onPowerClicked:    root.powerMenuOpen = !root.powerMenuOpen // <--- Wired up here!
                     }
                 }
             }
@@ -212,5 +231,17 @@ ShellRoot {
         accentColor:  root.accentColor
         fgColor:      root.fgColor
         activeFont:   root.activeFont
+    }
+    // ── POWER MENU ───────────────────────────────────────────────────────────
+   // ── POWER MENU ───────────────────────────────────────────────────────────
+    PowerMenu {
+        powerMenuOpen: root.powerMenuOpen
+        accentColor:   root.accentColor
+        fgColor:       root.fgColor
+        errorColor:    root.errorColor
+        activeFont:    root.activeFont
+        
+        // Safely resets the state in the parent without breaking the binding!
+        onRequestClose: root.powerMenuOpen = false
     }
 }
